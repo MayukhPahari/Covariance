@@ -202,7 +202,7 @@ def user_def_input():
             print("Accepted")
             break
         
-    return f_low, f_high, total_t, ref_lcurve, path
+    return f_low, total_t, ref_lcurve, path
 
 def bin_time(f_max:float) -> float:
     binning_time = 0.5/f_max
@@ -293,4 +293,6 @@ plt.xscale("log")
 #plt.ylim(8e-2, 1e1)
 plt.legend()
 plt.show()
+
+
 
