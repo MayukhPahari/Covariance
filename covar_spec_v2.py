@@ -230,7 +230,7 @@ def reshape_array(segments, n_bins, arr):
     return arr
 
 def calc_covar_spectra():
-    f_low, f_high, total_t, ref_lcurve, path = user_def_input()
+    f_low, total_t, ref_lcurve, path = user_def_input()
     seg_time = segment_time(f_low)
     reference_lc = read_fits(f"{path}/{ref_lcurve}", clip_arr=True)
     _,_,ref_time = reference_lc.T
