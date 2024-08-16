@@ -153,7 +153,7 @@ def rms_err(n_bins, err, cnt_rate, excess_var):
 def rms_err_2d(n_bins, err_2d, cnt_rate_2d, excess_var):
     rms_error = np.zeros(len(err_2d))
     for i,_ in enumerate(err_2d):
-        rms_error[i] = rms_err(n_bins, err_2d[i], cnt_rate_2d[i], excess_var)
+        rms_error[i] = rms_err(n_bins, err_2d[i], cnt_rate_2d[i], excess_var[i])
         
     return rms_error
 
@@ -188,8 +188,8 @@ def user_def_input():
     delta_t, total_t = time[1], time[len(time)-1]
     f_max, f_min = 0.5/delta_t, 1/total_t
     print(f"Bin size is {delta_t} seconds")
-    print(f"Maximum allowed frequency: {f_max}")
-    #print(f"Minimum allowed frequency: {np.format_float_scientific(f_min, precision=4)}")
+    #print(f"Maximum allowed frequency: {f_max}")
+    print(f"Minimum allowed frequency: {np.format_float_scientific(f_min, precision=4)}")
     
     while(True):
         f_low = float(input("Enter low frequency (Lower bound): "))
@@ -266,10 +266,11 @@ def calc_covar_spectra():
     return covar_arr, excess_cov_arr, cov_err_arr, rms_err_arr
 
 cov, excess_cov, cov_err, rms_error = calc_covar_spectra()
+print(rms_error)
 cov = np.mean(cov, axis=1)
 excess_cov = np.mean(excess_cov, axis=1)
 cov_err = np.mean(cov_err, axis=1)
-rms_error = np.mean(cov_err, axis=1)
+rms_error = np.mean(rms_error, axis=1)
 #print(cov)
 #energy = np.ones((4,150))
 #energy[0]*=0.4
@@ -287,9 +288,9 @@ rms_error = np.mean(cov_err, axis=1)
 energy = np.array([0.4, 0.6, 0.8, 1.0, 1.25, 1.55, 1.85, 2.5, 2.75, 3.5, 4.5, 6.0, 8.0])
 
 plt.errorbar(energy, cov/energy, yerr=cov_err, linestyle="", fmt=".", label="Cov")
-plt.errorbar(energy, 3*np.sqrt(excess_cov)/energy, yerr=rms_error, linestyle="", fmt="o", label="rms")
+plt.errorbar(energy, 3*np.sqrt(excess_cov)/energy, yerr=rms_error, linestyle="", fmt=".", label="rms")
 plt.yscale("log")
-plt.xscale("log")
+#plt.xscale("log")
 #plt.ylim(8e-2, 1e1)
 plt.legend()
 plt.show()
