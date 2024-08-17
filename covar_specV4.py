@@ -279,16 +279,22 @@ def calc_covar_spectra():
         covar_err = normalized_covariance_error(cnt_rate, ref_cnt_rate, err, ref_err)
         covar_arr[enr] = norm_cov
         cov_err_arr[enr] = covar_err
-        rms_err_arr[enr] = rms_err_2d(n_bins, err, cnt_rate, excess_var)
+        excess_var = excess_var*[excess_var>0]
+        rms_err_arr[enr] = rms_err_2d(n_bins, err, cnt_rate, excess_var.flatten())
+
+    excess_var_arr[excess_var_arr<0] = np.nan
+    covar_arr = np.nanmean(covar_arr, axis=1)
+    excess_var_arr = np.nanmean(excess_var_arr, axis=1)
+    cov_err_arr = np.nanmean(cov_err_arr, axis=1)
+    rms_err_arr = np.nanmean(rms_err_arr, axis=1)
     
     return covar_arr, excess_var_arr, cov_err_arr, rms_err_arr
 
+
+
 cov, excess_var, cov_err, rms_error = calc_covar_spectra()
 #print(rms_error)
-cov = np.nanmean(cov, axis=1)
-excess_var = np.nanmean(excess_var, axis=1)
-cov_err = np.nanmean(cov_err, axis=1)
-rms_error = np.nanmean(rms_error, axis=1)
+
 
         
 ###### PLOTTING RMS AND COVARIANCE SPECTRA ########################     
@@ -297,7 +303,7 @@ rms_error = np.nanmean(rms_error, axis=1)
 energy = np.array([0.4, 0.6, 0.8, 1.0, 1.25, 1.55, 1.85, 2.5, 2.75, 3.5, 4.5, 6.0, 8.0])
 energy_err = np.array([0.1, 0.1, 0.1, 0.1, 0.15, 0.15, 0.15, 0.25, 0.25, 0.5, 0.5, 1.0, 1.0])
 plt.errorbar(energy, cov/energy, xerr=energy_err, yerr=cov_err, linestyle="", fmt=".", label="Covariance")
-#plt.errorbar(energy, np.sqrt(excess_var)/energy, xerr=energy_err, yerr=rms_error, linestyle="", fmt=".", label="rms")
+plt.errorbar(energy, np.sqrt(excess_var)/energy, xerr=energy_err, yerr=rms_error, linestyle="", fmt=".", label="rms")
 #plt.errorbar(energy, rms_error, linestyle="", fmt=".", label="rms")
 plt.yscale("log")
 plt.xscale("log")
