@@ -1,3 +1,5 @@
+########## CHANGE FOLLOWING LINES BEFORE RUNNING THE CODE  ######################
+#########  PROVIDE PATH TO YOUR XMM ODF FOLDER DATA DIRECTORY ##################################
 export DAT=/media/mayukh/data1/cov-test-with-ngc4593/data/2002/0059830101/ODF
 
 cd $DAT
@@ -20,9 +22,12 @@ export SAS_ODF=$DAT/copyodf.SAS
 
 rm -rf lightcurve*set/
 
-read -p "What is the binsize of the lightcurve in sec ? " n
+epproc
 
 cp *U014*ImagingEvts.ds pn_filt.fits
+
+read -p "What is the binsize of the lightcurve in sec ? " n
+
 
 evselect table=pn_filt.fits withfilteredset=yes expression='(PATTERN <= 4)&&(PI in [300:500])&&#XMMEA_EP&&((X,Y) in CIRCLE(26000.5,27850.5,800))' filteredset=pn_filt_src_pt3_pt5.fits filtertype=expression keepfilteroutput=yes updateexposure=yes filterexposure=yes
 
@@ -168,12 +173,14 @@ evselect table=pn_filt.fits withfilteredset=yes expression='(PATTERN <= 4)&&(PI 
 evselect table=pn_filt_bkg_1_4.fits withrateset=yes rateset=back_ref.fits maketimecolumn=yes timecolumn=TIME timebinsize="$n" makeratecolumn=yes
 
 lcmath infile=en111.fits bgfile=back_ref.fits outfile=en-sub-ref.fits multi=1. multb=1. addsubr=no
-
-
+write "Energy-resolved background subtracted lightcurves are extracted successfully! Now proceeding towards rms and covariance calculations.."
+sleep 2s
 mkdir lightcurve-"$n"sec-set
 cp en-sub*.fits lightcurve-"$n"sec-set/
-cp /home/mayukh/covar_specV1.py lightcurve-"$n"sec-set/
 cd lightcurve-"$n"sec-set/
-cp /home/mayukh/covar_specV3.py .
+cp $COVARDIR/covar_specV5.py .
 pwd
-python3 covar_specV3.py
+python3 covar_specV5.py
+read -p "How many segments did you use to calculate rms and covariance? " s 
+cp rms.txt rms_"$n"secbin_"$s"seg.txt
+cp norm_cov.txt norm_cov_"$n"secbin_"$s"seg.txt
