@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 warnings.simplefilter('always', UserWarning)
 
-def excess_covariance(cnt_rate:np.ndarray, error:np.ndarray) -> float:
+def excess_variance(cnt_rate:np.ndarray, error:np.ndarray) -> float:
     """Calculates the excess covariance of a light curve
 
     Args:
@@ -19,19 +19,19 @@ def excess_covariance(cnt_rate:np.ndarray, error:np.ndarray) -> float:
     """
     
     #Calculate excesss covariance
-    excess_cov:float = (np.sum((cnt_rate-np.mean(cnt_rate))*(cnt_rate-np.mean(cnt_rate)))/(len(cnt_rate)-1)) - np.mean(error*error)
-    if excess_cov < 0:
-    	excess_cov = 0
-    #print(np.mean(error*error))
-    
-    return excess_cov
+    excess_var:float = (np.sum((cnt_rate-np.nanmean(cnt_rate))*(cnt_rate-np.nanmean(cnt_rate)))/(len(cnt_rate)-1)) - np.nanmean(error*error)
+    """if excess_var < 0:
+        excess_var = 0"""
+            
+    return excess_var
 
-def excess_covariance_2d(cnt_rate_2d, error_2d):
-    excess_cov = np.zeros(len(cnt_rate_2d))
+def excess_variance_2d(cnt_rate_2d, error_2d):
+    excess_var = np.zeros(len(cnt_rate_2d))
     
     for i,_ in enumerate(cnt_rate_2d):
-        excess_cov[i] = excess_covariance(cnt_rate_2d[i], error_2d[i])#np.sum((cnt_rate_2d[i]-np.mean(cnt_rate_2d[i]))*(cnt_rate_2d[i]-np.mean(cnt_rate_2d[i])))/(len(cnt_rate_2d[i])-1) - np.mean((error_2d[i]-np.mean(error_2d[i]))*(error_2d[i]-np.mean(error_2d[i])))
-    return excess_cov
+        excess_var[i] = excess_variance(cnt_rate_2d[i], error_2d[i])
+    
+    return excess_var
 
 def covariance(cnt_rate:np.ndarray, ref_cnt_rate:np.ndarray) -> float:
     """Calculates covariance with respect to reference energy band
@@ -45,7 +45,7 @@ def covariance(cnt_rate:np.ndarray, ref_cnt_rate:np.ndarray) -> float:
     """
     
     #Calculate covariance with respect to reference energy band
-    cov:float = np.sum((cnt_rate-np.mean(cnt_rate))*(ref_cnt_rate-np.mean(ref_cnt_rate))) / (len(cnt_rate)-1)
+    cov:float = np.sum((cnt_rate-np.nanmean(cnt_rate))*(ref_cnt_rate-np.nanmean(ref_cnt_rate))) / (len(cnt_rate)-1)
     
     return cov
 
@@ -69,20 +69,17 @@ def normalized_covariance(cov:float, ref_cnt_rate: np.ndarray, ref_error:np.ndar
     """
     
     #Calculate excess covariance of reference band
-    cov_excess = excess_covariance(ref_cnt_rate, ref_error)
+    var_excess = excess_variance(ref_cnt_rate, ref_error)
     #Calculate normalized covariance
-    cov_norm = cov/np.sqrt(cov_excess)
+    cov_norm = cov/np.sqrt(var_excess)
     
     return cov_norm
 
 def normalized_covariance_2d(cov_2d, ref_cnt_rate_2d, ref_err_2d):
-    cov_excess = excess_covariance_2d(ref_cnt_rate_2d, ref_err_2d)
-    #print(cov_excess)
-    np.set_printoptions(threshold=sys.maxsize)
-    #print("Negative cov excess", len(cov_excess[cov_excess<0]))
-    cov_norm = cov_2d/np.sqrt(cov_excess)
+    var_excess = excess_variance_2d(ref_cnt_rate_2d, ref_err_2d)
+    cov_norm = cov_2d/np.sqrt(var_excess)
     
-    return cov_norm, cov_excess
+    return cov_norm, var_excess
 
 def avg_cov(cnt_rate_2d:np.ndarray, ref_cnt_rate_2d:np.ndarray, ref_err_2d:np.ndarray) -> float:
     """Calculates average covariance from all the segments
@@ -96,9 +93,9 @@ def avg_cov(cnt_rate_2d:np.ndarray, ref_cnt_rate_2d:np.ndarray, ref_err_2d:np.nd
     """
     #vec_cov = np.vectorize(covariance)
     covar = covariance_2d(cnt_rate_2d, ref_cnt_rate_2d)
-    return np.mean(normalized_covariance_2d(covar, ref_cnt_rate_2d, ref_err_2d))
+    return np.nanmean(normalized_covariance_2d(covar, ref_cnt_rate_2d, ref_err_2d))
 
-def avg_excess_cov(cnt_rate_2d:np.ndarray, err_2d:np.ndarray) -> float:
+def avg_excess_var(cnt_rate_2d:np.ndarray, err_2d:np.ndarray) -> float:
     """Calculates average excess covariance
 
     Args:
@@ -108,8 +105,10 @@ def avg_excess_cov(cnt_rate_2d:np.ndarray, err_2d:np.ndarray) -> float:
     Returns:
         float: Average excess covariance
     """
-    
-    return np.mean(excess_covariance_2d(cnt_rate_2d, err_2d))
+    evar = excess_variance_2d(cnt_rate_2d, err_2d)
+    evar = evar[evar>0]
+
+    return np.nanmean(evar)
 
 def normalized_covariance_error(cnt_rate_2d:np.ndarray, ref_cnt_rate_2d:np.ndarray, err_2d:np.ndarray, ref_err_2d:np.ndarray) -> float:
     """Calculates normalized covariance
@@ -124,8 +123,8 @@ def normalized_covariance_error(cnt_rate_2d:np.ndarray, ref_cnt_rate_2d:np.ndarr
         float: Normalized covariance error
     """
     
-    ecov_x_avg = avg_excess_cov(cnt_rate_2d, err_2d) # Average excess covariance of countrate
-    ecov_y_avg = avg_excess_cov(ref_cnt_rate_2d, ref_err_2d) # Average excess covariance of reference countrate
+    evar_x_avg = avg_excess_var(cnt_rate_2d, err_2d) # Average excess covariance of countrate
+    evar_y_avg = avg_excess_var(ref_cnt_rate_2d, ref_err_2d) # Average p.excess covariance of reference countrate
     err:np.ndarray = err_2d.flatten()
     ref_err:np.ndarray = ref_err_2d.flatten()
     err2:np.ndarray = err*err
@@ -134,9 +133,9 @@ def normalized_covariance_error(cnt_rate_2d:np.ndarray, ref_cnt_rate_2d:np.ndarr
     segments:int = len(cnt_rate_2d)
     bins_ps:int = len(cnt_rate_2d[0])
     
-    nc_err2:float = (ecov_x_avg*np.mean(ref_err2) +
-               ecov_y_avg*np.mean(err2) +
-               np.mean(err2)*np.mean(ref_err2)) / (bins_ps*segments*ecov_y_avg)
+    nc_err2:float = (evar_x_avg*np.nanmean(ref_err2) +
+               evar_y_avg*np.nanmean(err2) +
+               np.nanmean(err2)*np.nanmean(ref_err2)) / (bins_ps*segments*evar_y_avg)
                 
     nc_err:float = np.sqrt(nc_err2)
                 
@@ -145,12 +144,12 @@ def normalized_covariance_error(cnt_rate_2d:np.ndarray, ref_cnt_rate_2d:np.ndarr
 
 def rms_err(n_bins, err, cnt_rate, excess_var):
     #print(err)
-    #err2 = np.mean((err-np.mean(err))*(err-np.mean(err)))
-    err2 = np.mean(err*err)
-    cnt_rate_avg2 = np.mean(cnt_rate)*np.mean(cnt_rate)
+    #err2 = np.nanmean((err-np.nanmean(err))*(err-np.nanmean(err)))
+    err2 = np.nanmean(err*err)
+    cnt_rate_avg2 = np.nanmean(cnt_rate)*np.nanmean(cnt_rate)
     F_var = np.sqrt(excess_var/cnt_rate_avg2)
     p1 = np.sqrt(2/n_bins)*(err2/cnt_rate_avg2)
-    p2 = np.sqrt(err2/n_bins)*2*(F_var/np.mean(cnt_rate))
+    p2 = np.sqrt(err2/n_bins)*2*(F_var/np.nanmean(cnt_rate))
     #p1 = np.sqrt(2/n_bins)*(err2)
     #p2 = np.sqrt(err2/n_bins)*2*(F_var)
     
@@ -185,14 +184,14 @@ def read_fits(fits_file_path, clip_arr=True):
 def user_def_input():
     path = input("Enter the absolute path to the directory that contains your data without quotes (Default: Current dir): ")
     if not path.strip():
-    	path = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.dirname(os.path.abspath(__file__))
     
     if not os.path.isdir(path):
         raise Exception("PathNotFound: Check directory path")
     
     ref_lcurve = input("Enter the name of the reference light curve with extension (Default: en-sub-ref.fits): ")
     if not ref_lcurve.strip():
-    	ref_lcurve = "en-sub-ref.fits"
+        ref_lcurve = "en-sub-ref.fits"
     if not os.path.exists(f"{path}/{ref_lcurve}"):
         raise Exception("FileNotFound: Check reference light curve file name")
     
@@ -257,8 +256,11 @@ def calc_covar_spectra():
     ref_time = reshape_array(segments, n_bins, ref_time)
     covar_arr = np.zeros((13,segments))
     cov_err_arr = np.zeros((13,segments))
-    excess_cov_arr = np.zeros((13,segments))
+    excess_var_arr = np.zeros((13,segments))
     rms_err_arr = np.zeros((13,segments))
+    excess_var = excess_variance_2d(ref_cnt_rate, ref_err)
+    evar_check = np.sum([excess_var<0])
+    _ = print(f"WARNING: {evar_check} negative excess variances detected for reference energy band") if evar_check != 0 else None
     for enr in range(13):
         light_curve = read_fits(f"{path}/en-sub{enr+1}.fits")
         cnt_rate, err, time = light_curve[:new_length].T
@@ -268,23 +270,25 @@ def calc_covar_spectra():
         time = reshape_array(segments, n_bins, time)
         cov = covariance_2d(cnt_rate, ref_cnt_rate)
         norm_cov,_ = normalized_covariance_2d(cov, ref_cnt_rate, ref_err)
+        
         #norm_cov,_ = normalized_covariance_2d(cov, cnt_rate, err)
-        excess_cov = excess_covariance_2d(cnt_rate, err)
-        excess_cov_arr[enr] = excess_cov
+        excess_var = excess_variance_2d(cnt_rate, err)
+        evar_check = np.sum([excess_var<0])
+        _ = print(f"WARNING: {evar_check} negative excess variances detected for energy band number {enr+1}") if evar_check != 0 else None
+        excess_var_arr[enr] = excess_var
         covar_err = normalized_covariance_error(cnt_rate, ref_cnt_rate, err, ref_err)
         covar_arr[enr] = norm_cov
         cov_err_arr[enr] = covar_err
-        rms_err_arr[enr] = rms_err_2d(n_bins, err, cnt_rate, excess_cov)
-        print("------------------------------------------------------")
+        rms_err_arr[enr] = rms_err_2d(n_bins, err, cnt_rate, excess_var)
     
-    return covar_arr, excess_cov_arr, cov_err_arr, rms_err_arr
+    return covar_arr, excess_var_arr, cov_err_arr, rms_err_arr
 
-cov, excess_cov, cov_err, rms_error = calc_covar_spectra()
+cov, excess_var, cov_err, rms_error = calc_covar_spectra()
 #print(rms_error)
-cov = np.mean(cov, axis=1)
-excess_cov = np.mean(excess_cov, axis=1)
-cov_err = np.mean(cov_err, axis=1)
-rms_error = np.mean(rms_error, axis=1)
+cov = np.nanmean(cov, axis=1)
+excess_var = np.nanmean(excess_var, axis=1)
+cov_err = np.nanmean(cov_err, axis=1)
+rms_error = np.nanmean(rms_error, axis=1)
 
         
 ###### PLOTTING RMS AND COVARIANCE SPECTRA ########################     
@@ -293,7 +297,7 @@ rms_error = np.mean(rms_error, axis=1)
 energy = np.array([0.4, 0.6, 0.8, 1.0, 1.25, 1.55, 1.85, 2.5, 2.75, 3.5, 4.5, 6.0, 8.0])
 energy_err = np.array([0.1, 0.1, 0.1, 0.1, 0.15, 0.15, 0.15, 0.25, 0.25, 0.5, 0.5, 1.0, 1.0])
 plt.errorbar(energy, cov/energy, xerr=energy_err, yerr=cov_err, linestyle="", fmt=".", label="Covariance")
-plt.errorbar(energy, np.sqrt(excess_cov)/energy, xerr=energy_err, yerr=rms_error, linestyle="", fmt=".", label="rms")
+#plt.errorbar(energy, np.sqrt(excess_var)/energy, xerr=energy_err, yerr=rms_error, linestyle="", fmt=".", label="rms")
 #plt.errorbar(energy, rms_error, linestyle="", fmt=".", label="rms")
 plt.yscale("log")
 plt.xscale("log")
@@ -304,5 +308,5 @@ plt.ylabel(r"Normalized counts s$^{-1}$ keV$^{-1}$")
 #plt.show()
 plt.savefig('covar-rms.png')
 np.savetxt("norm_cov.txt", np.array([energy, energy_err, cov/energy, cov_err]).T, fmt=('%2.2f', '%1.2f', '%2.4f', '%1.4f'))
-np.savetxt("rms.txt", np.array([energy, energy_err, np.sqrt(excess_cov)/energy, rms_error]).T, fmt=('%2.2f', '%1.2f', '%2.4f', '%1.4f'))
+np.savetxt("rms.txt", np.array([energy, energy_err, np.sqrt(excess_var)/energy, rms_error]).T, fmt=('%2.2f', '%1.2f', '%2.4f', '%1.4f'))
 plt.show()
